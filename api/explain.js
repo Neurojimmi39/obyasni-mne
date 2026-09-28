@@ -192,23 +192,30 @@ export default async function handler(req, res) {
     const result = JSON.parse(cleanText);
 
     // ==========================================
-    // 3. Если выбран режим "С картинкой",
-    //    отдельно генерируем иллюстрацию
+    // 3. Если выбрана "С картинкой",
+    //    отдельно просим GigaChat создать изображение
     // ==========================================
 
     if (style === 'visual') {
       try {
-        const imagePrompt = `Нарисуй наглядную образовательную иллюстрацию для школьника ${grade} класса по предмету ${subject} на тему: «${topic}».
+        const imagePrompt = `Нарисуй наглядную образовательную иллюстрацию для школьника ${grade} класса.
 
-Картинка должна помогать ребёнку понять тему.
+Предмет: ${subject}
+Тема: ${topic}
+
+Картинка должна помогать ребёнку понять эту тему, а не просто украшать объяснение.
 
 Требования:
-- понятная школьнику иллюстрация;
-- простая и наглядная композиция;
-- без декоративного текста;
+- понятная школьнику;
+- наглядная;
+- простая композиция;
+- показывает главную идею темы;
 - без лишних деталей;
-- никаких надписей, букв, цифр и подписей на изображении;
-- изображение должно визуально объяснять основную идею темы.`;
+- без декоративного текста;
+- без надписей;
+- без букв;
+- без цифр;
+- без подписей на изображении.`;
 
         const imageResponse = await httpsRequest(
           'https://api.giga.chat/v1/chat/completions',
@@ -221,7 +228,7 @@ export default async function handler(req, res) {
             }
           },
           JSON.stringify({
-            model: 'GigaChat-3-Ultra',
+            model: 'GigaChat-2-Pro',
             messages: [
               {
                 role: 'user',
@@ -232,13 +239,23 @@ export default async function handler(req, res) {
           })
         );
 
-        if (imageResponse.ok) {
+        if (!imageResponse.ok) {
+          const detail = await imageResponse.text();
+
+          console.error(
+            'GigaChat image request failed:',
+            imageResponse.status,
+            detail
+          );
+        } else {
           const imageData = await imageResponse.json();
 
           const imageText =
             imageData?.choices?.[0]?.message?.content || '';
 
-          // GigaChat возвращает примерно:
+          console.log('GigaChat image response:', imageText);
+
+          // Ищем UUID картинки в ответе:
           // <img src="UUID" .../>
 
           const imageMatch = imageText.match(
@@ -249,7 +266,7 @@ export default async function handler(req, res) {
             const imageFileId = imageMatch[1];
 
             // ==========================================
-            // 4. Скачиваем готовую картинку
+            // 4. Скачиваем созданную картинку
             // ==========================================
 
             const imageFileResponse = await httpsRequest(
@@ -263,18 +280,36 @@ export default async function handler(req, res) {
               }
             );
 
-            if (imageFileResponse.ok) {
-              const imageBuffer = await imageFileResponse.buffer();
+            if (!imageFileResponse.ok) {
+              const detail = await imageFileResponse.text();
+
+              console.error(
+                'GigaChat image download failed:',
+                imageFileResponse.status,
+                detail
+              );
+            } else {
+              const imageBuffer =
+                await imageFileResponse.buffer();
 
               result.image =
                 `data:image/jpeg;base64,${imageBuffer.toString('base64')}`;
+
+              console.log('Image successfully generated');
             }
+          } else {
+            console.error(
+              'Image UUID was not found in GigaChat response'
+            );
           }
         }
+
       } catch (imageError) {
-        // Если картинка не сгенерировалась,
-        // текстовое объяснение всё равно возвращаем.
-        console.error('GigaChat image generation error:', imageError);
+        // Ошибка картинки не ломает основное объяснение
+        console.error(
+          'GigaChat image generation error:',
+          imageError
+        );
       }
     }
 
