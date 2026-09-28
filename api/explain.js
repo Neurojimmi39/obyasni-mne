@@ -1,12 +1,48 @@
 import fs from 'fs';
+import path from 'path';
 import https from 'https';
+import { randomUUID } from 'crypto';
+
+const certDir = path.join(process.cwd(), 'certs');
 
 const ca = [
-  fs.readFileSync('./certs/Russian_Trusted_Root_CA.cer'),
-  fs.readFileSync('./certs/Russian_Trusted_Sub_CA.cer')
+  fs.readFileSync(path.join(certDir, 'Russian_Trusted_Root_CA.cer')),
+  fs.readFileSync(path.join(certDir, 'Russian_Trusted_Sub_CA.cer'))
 ];
 
 const httpsAgent = new https.Agent({ ca });
+
+function httpsRequest(url, options = {}, body = '') {
+  return new Promise((resolve, reject) => {
+    const request = https.request(url, {
+      ...options,
+      agent: httpsAgent
+    }, (response) => {
+      let data = '';
+
+      response.on('data', chunk => {
+        data += chunk;
+      });
+
+      response.on('end', () => {
+        resolve({
+          status: response.statusCode,
+          ok: response.statusCode >= 200 && response.statusCode < 300,
+          text: async () => data,
+          json: async () => JSON.parse(data)
+        });
+      });
+    });
+
+    request.on('error', reject);
+
+    if (body) {
+      request.write(body);
+    }
+
+    request.end();
+  });
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -61,19 +97,18 @@ export default async function handler(req, res) {
   "quizCorrectIndex": 0
 }`;
 
-    const tokenResponse = await fetch(
+    const tokenResponse = await httpsRequest(
       'https://ngw.devices.sberbank.ru:9443/api/v2/oauth',
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Accept': 'application/json',
-          'RqUID': crypto.randomUUID(),
+          'RqUID': randomUUID(),
           'Authorization': `Basic ${authKey}`
-        },
-        body: 'scope=GIGACHAT_API_PERS',
-        agent: httpsAgent
-      }
+        }
+      },
+      'scope=GIGACHAT_API_PERS'
     );
 
     if (!tokenResponse.ok) {
@@ -88,7 +123,7 @@ export default async function handler(req, res) {
     const tokenData = await tokenResponse.json();
     const accessToken = tokenData.access_token;
 
-    const response = await fetch(
+    const response = await httpsRequest(
       'https://api.giga.chat/v1/chat/completions',
       {
         method: 'POST',
@@ -96,19 +131,18 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({
-          model: 'GigaChat-3-Ultra',
-          messages: [
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          temperature: 0.3
-        }),
-        agent: httpsAgent
-      }
+        }
+      },
+      JSON.stringify({
+        model: 'GigaChat-3-Ultra',
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.3
+      })
     );
 
     if (!response.ok) {
