@@ -1,13 +1,10 @@
 import fs from 'fs';
-import path from 'path';
 import https from 'https';
 import { randomUUID } from 'crypto';
 
-const certDir = path.join(process.cwd(), 'certs');
-
 const ca = [
-  fs.readFileSync(path.join(certDir, 'Russian_Trusted_Root_CA.cer')),
-  fs.readFileSync(path.join(certDir, 'Russian_Trusted_Sub_CA.cer'))
+  fs.readFileSync(new URL('../certs/Russian_Trusted_Root_CA.cer', import.meta.url)),
+  fs.readFileSync(new URL('../certs/Russian_Trusted_Sub_CA.cer', import.meta.url))
 ];
 
 const httpsAgent = new https.Agent({ ca });
