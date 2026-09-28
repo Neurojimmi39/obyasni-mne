@@ -14,28 +14,36 @@ const httpsAgent = new https.Agent({ ca });
 
 function httpsRequest(url, options = {}, body = '') {
   return new Promise((resolve, reject) => {
-    const request = https.request(url, {
-      ...options,
-      agent: httpsAgent
-    }, (response) => {
-      const chunks = [];
+    const request = https.request(
+      url,
+      {
+        ...options,
+        agent: httpsAgent
+      },
+      (response) => {
+        const chunks = [];
 
-      response.on('data', chunk => {
-        chunks.push(chunk);
-      });
-
-      response.on('end', () => {
-        const buffer = Buffer.concat(chunks);
-
-        resolve({
-          status: response.statusCode,
-          ok: response.statusCode >= 200 && response.statusCode < 300,
-          text: async () => buffer.toString('utf8'),
-          json: async () => JSON.parse(buffer.toString('utf8')),
-          buffer: async () => buffer
+        response.on('data', (chunk) => {
+          chunks.push(chunk);
         });
-      });
-    });
+
+        response.on('end', () => {
+          const buffer = Buffer.concat(chunks);
+
+          resolve({
+            status: response.statusCode,
+            ok: response.statusCode >= 200 && response.statusCode < 300,
+
+            text: async () => buffer.toString('utf8'),
+
+            json: async () =>
+              JSON.parse(buffer.toString('utf8')),
+
+            buffer: async () => buffer
+          });
+        });
+      }
+    );
 
     request.on('error', reject);
 
@@ -79,7 +87,7 @@ export default async function handler(req, res) {
     const styleMap = {
       simple: 'очень простым языком, как для друга',
       example: 'через знакомый жизненный пример',
-      visual: 'через простую текстовую схему и объяснение',
+      visual: 'с помощью наглядной иллюстрации и простого объяснения',
       game: 'как маленькую игру с коротким заданием',
       teacher: 'как хороший учитель: подробно и по шагам',
       fun: 'с лёгким уместным юмором, не теряя смысла'
@@ -93,25 +101,33 @@ export default async function handler(req, res) {
 Способ объяснения: ${styleMap[style] || styleMap.simple}
 
 Объясни именно эту тему на уровне указанного класса.
+
 Не перегружай терминами.
 Если используешь термин, сразу объясни его простыми словами.
 Не придумывай факты.
 
-В конце дай одну короткую фразу для запоминания и один вопрос с тремя вариантами ответа для проверки понимания.
+В конце дай:
+1. одну короткую фразу для запоминания;
+2. один вопрос с тремя вариантами ответа для проверки понимания.
 
 Верни только JSON:
+
 {
   "title": "короткий заголовок",
   "explanation": "понятное объяснение",
   "summary": "одна короткая фраза для запоминания",
   "quizQuestion": "вопрос",
-  "quizOptions": ["вариант 1", "вариант 2", "вариант 3"],
+  "quizOptions": [
+    "вариант 1",
+    "вариант 2",
+    "вариант 3"
+  ],
   "quizCorrectIndex": 0
 }`;
 
-    // ==========================================
+    // =========================================================
     // 1. Получаем токен GigaChat
-    // ==========================================
+    // =========================================================
 
     const tokenResponse = await httpsRequest(
       'https://ngw.devices.sberbank.ru:9443/api/v2/oauth',
@@ -139,9 +155,9 @@ export default async function handler(req, res) {
     const tokenData = await tokenResponse.json();
     const accessToken = tokenData.access_token;
 
-    // ==========================================
+    // =========================================================
     // 2. Получаем текстовое объяснение
-    // ==========================================
+    // =========================================================
 
     const response = await httpsRequest(
       'https://api.giga.chat/v1/chat/completions',
@@ -155,12 +171,14 @@ export default async function handler(req, res) {
       },
       JSON.stringify({
         model: 'GigaChat-3-Ultra',
+
         messages: [
           {
             role: 'user',
             content: prompt
           }
         ],
+
         temperature: 0.3
       })
     );
@@ -175,7 +193,9 @@ export default async function handler(req, res) {
     }
 
     const data = await response.json();
-    const text = data?.choices?.[0]?.message?.content;
+
+    const text =
+      data?.choices?.[0]?.message?.content;
 
     if (!text) {
       return res.status(502).json({
@@ -191,31 +211,40 @@ export default async function handler(req, res) {
 
     const result = JSON.parse(cleanText);
 
-    // ==========================================
-    // 3. Если выбрана "С картинкой",
+    // =========================================================
+    // 3. Если выбрано "С картинкой" —
     //    отдельно просим GigaChat создать изображение
-    // ==========================================
+    // =========================================================
 
     if (style === 'visual') {
       try {
         const imagePrompt = `Нарисуй наглядную образовательную иллюстрацию для школьника ${grade} класса.
 
 Предмет: ${subject}
-Тема: ${topic}
 
-Картинка должна помогать ребёнку понять эту тему, а не просто украшать объяснение.
+Тема:
+${topic}
+
+Картинка должна помогать ребёнку ПОНЯТЬ тему, а не просто украшать объяснение.
+
+Покажи главную идею темы визуально.
 
 Требования:
-- понятная школьнику;
-- наглядная;
+- понятно школьнику;
 - простая композиция;
-- показывает главную идею темы;
+- наглядно показывает основную идею;
 - без лишних деталей;
 - без декоративного текста;
 - без надписей;
 - без букв;
 - без цифр;
-- без подписей на изображении.`;
+- без подписей;
+- не делай постер;
+- не делай инфографику с текстом;
+- это именно учебная иллюстрация.`;
+
+        console.log('Starting GigaChat image generation...');
+        console.log('Image topic:', topic);
 
         const imageResponse = await httpsRequest(
           'https://api.giga.chat/v1/chat/completions',
@@ -229,13 +258,23 @@ export default async function handler(req, res) {
           },
           JSON.stringify({
             model: 'GigaChat-2-Pro',
+
             messages: [
               {
                 role: 'user',
                 content: imagePrompt
               }
             ],
-            function_call: 'auto'
+
+            // Включаем встроенные функции GigaChat
+            function_call: 'auto',
+
+            // Явно разрешаем text2image
+            functions: [
+              {
+                name: 'text2image'
+              }
+            ]
           })
         );
 
@@ -253,10 +292,14 @@ export default async function handler(req, res) {
           const imageText =
             imageData?.choices?.[0]?.message?.content || '';
 
-          console.log('GigaChat image response:', imageText);
+          console.log(
+            'GigaChat image response:',
+            imageText
+          );
 
-          // Ищем UUID картинки в ответе:
-          // <img src="UUID" .../>
+          // =====================================================
+          // 4. Ищем ID созданного изображения
+          // =====================================================
 
           const imageMatch = imageText.match(
             /<img\s+src=["']([^"']+)["']/i
@@ -265,9 +308,14 @@ export default async function handler(req, res) {
           if (imageMatch?.[1]) {
             const imageFileId = imageMatch[1];
 
-            // ==========================================
-            // 4. Скачиваем созданную картинку
-            // ==========================================
+            console.log(
+              'Generated image ID:',
+              imageFileId
+            );
+
+            // ===================================================
+            // 5. Скачиваем изображение из GigaChat
+            // ===================================================
 
             const imageFileResponse = await httpsRequest(
               `https://api.giga.chat/v1/files/${imageFileId}/content`,
@@ -281,7 +329,8 @@ export default async function handler(req, res) {
             );
 
             if (!imageFileResponse.ok) {
-              const detail = await imageFileResponse.text();
+              const detail =
+                await imageFileResponse.text();
 
               console.error(
                 'GigaChat image download failed:',
@@ -292,10 +341,17 @@ export default async function handler(req, res) {
               const imageBuffer =
                 await imageFileResponse.buffer();
 
+              // =================================================
+              // 6. Превращаем картинку в base64,
+              //    чтобы сайт мог показать её напрямую
+              // =================================================
+
               result.image =
                 `data:image/jpeg;base64,${imageBuffer.toString('base64')}`;
 
-              console.log('Image successfully generated');
+              console.log(
+                'Image successfully generated and downloaded'
+              );
             }
           } else {
             console.error(
@@ -305,7 +361,9 @@ export default async function handler(req, res) {
         }
 
       } catch (imageError) {
-        // Ошибка картинки не ломает основное объяснение
+        // Ошибка картинки НЕ должна ломать
+        // обычное текстовое объяснение
+
         console.error(
           'GigaChat image generation error:',
           imageError
@@ -313,14 +371,17 @@ export default async function handler(req, res) {
       }
     }
 
-    // ==========================================
-    // 5. Возвращаем результат сайту
-    // ==========================================
+    // =========================================================
+    // 7. Возвращаем результат сайту
+    // =========================================================
 
     return res.status(200).json(result);
 
   } catch (error) {
-    console.error('GigaChat error:', error);
+    console.error(
+      'GigaChat error:',
+      error
+    );
 
     return res.status(500).json({
       error: 'Server error',
