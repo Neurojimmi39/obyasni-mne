@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Объясни мне</title>
+<style>
+:root { color-scheme: light dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+body { background: #eef6ff; }
+#app { min-height: 100vh; background: light-dark(#f5f9ff,#09121f); color: light-dark(#132238,#f2f7ff); }
+.shell { width: min(1100px, 100%); margin: 0 auto; padding: 28px 20px 48px; }
+.top { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:22px; }
+.brand { display:flex; align-items:center; gap:12px; font-weight:800; letter-spacing:-.02em; }
+.robot { width:48px; height:48px; display:grid; place-items:center; border-radius:15px; background:linear-gradient(135deg,#025feb,#00c3fa); box-shadow:0 10px 25px #025feb33; font-size:25px; }
+.badge { padding:8px 12px; border-radius:999px; background:light-dark(#e7f1ff,#12263c); color:light-dark(#1760b8,#8ddaff); font-size:13px; font-weight:700; }
+.card { background:light-dark(#fff,#101d2d); border:1px solid light-dark(#dbe7f5,#22364c); border-radius:26px; box-shadow:0 18px 55px #1a4f7d14; }
+.hero { padding:34px; display:grid; grid-template-columns:1.1fr .9fr; gap:28px; align-items:center; }
+h1 { font-size:clamp(34px,5vw,62px); line-height:.98; margin:0 0 18px; letter-spacing:-.045em; }
+.grad { background:linear-gradient(90deg,#025feb,#00aee8); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.lead { font-size:18px; line-height:1.55; color:light-dark(#52647a,#a9bbcf); max-width:650px; }
+.cta { display:inline-flex; align-items:center; gap:9px; border:0; border-radius:15px; padding:14px 20px; margin-top:10px; background:linear-gradient(135deg,#025feb,#00bce9); color:white; font-weight:800; cursor:pointer; font-size:15px; box-shadow:0 12px 25px #025feb35; }
+.cta:hover { transform:translateY(-1px); }
+.preview { min-height:260px; border-radius:24px; padding:22px; background:linear-gradient(145deg,#eaf7ff,#dfeeff); color:#132238; position:relative; overflow:hidden; }
+.preview:after { content:""; position:absolute; width:170px; height:170px; right:-55px; bottom:-70px; background:#00c3fa44; border-radius:50%; }
+.mini-bot { display:flex; gap:12px; align-items:flex-start; position:relative; z-index:1; }
+.mini-face { width:52px; height:52px; border-radius:16px; display:grid; place-items:center; background:#fff; font-size:27px; box-shadow:0 8px 20px #17618f22; }
+.bubble { background:#fff; border-radius:16px 16px 16px 5px; padding:13px 15px; line-height:1.4; font-size:14px; box-shadow:0 8px 20px #17618f18; }
+.flow { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:18px; }
+.flow span { background:#ffffffaa; border-radius:13px; padding:11px; font-size:12px; font-weight:700; }
+.step { padding:30px; }
+.hidden { display:none !important; }
+.step-head { display:flex; justify-content:space-between; gap:15px; align-items:flex-start; margin-bottom:24px; }
+.kicker { color:#0677c8; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; }
+h2 { margin:5px 0 0; font-size:30px; letter-spacing:-.03em; }
+.progress { height:7px; background:light-dark(#e6edf6,#1d3044); border-radius:99px; overflow:hidden; margin:0 0 26px; }
+.progress > div { height:100%; width:20%; background:linear-gradient(90deg,#025feb,#00c3fa); border-radius:99px; transition:width .35s ease; }
+.subjects, .styles { display:grid; grid-template-columns:repeat(3,1fr); gap:13px; }
+.option { border:1px solid light-dark(#dbe6f1,#294057); background:light-dark(#fbfdff,#132235); border-radius:17px; padding:18px; text-align:left; cursor:pointer; color:inherit; min-height:92px; transition:.18s; }
+.option:hover { border-color:#38aaf0; transform:translateY(-2px); }
+.option strong { display:block; margin-top:7px; }
+.option .icon { font-size:27px; }
+.grade-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:16px; }
+.grade { min-height:72px; }
+.field { width:100%; padding:15px 16px; border-radius:15px; border:1px solid light-dark(#d3e0ed,#2a4259); background:light-dark(#fff,#0d1927); color:inherit; font-size:17px; outline:none; }
+.field:focus { border-color:#18a8e7; box-shadow:0 0 0 4px #00c3fa1c; }
+.row { display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; }
+.secondary { border:1px solid light-dark(#d4e0ec,#294057); background:transparent; color:inherit; border-radius:14px; padding:12px 16px; font-weight:700; cursor:pointer; }
+.answer { background:light-dark(#f2f8ff,#0c1928); border:1px solid light-dark(#d8e7f4,#263c53); border-radius:20px; padding:23px; line-height:1.65; font-size:16px; }
+.answer h3 { margin:0 0 8px; font-size:22px; }
+.visual { margin-top:16px; padding:18px; border-radius:18px; background:linear-gradient(135deg,#e9f7ff,#f1f1ff); color:#132238; }
+.visual .earth { font-size:58px; float:left; margin-right:15px; }
+.quiz { margin-top:22px; }
+.quiz-q { font-weight:800; font-size:18px; margin-bottom:13px; }
+.quiz-options { display:grid; gap:9px; }
+.quiz-options button { padding:13px 15px; border-radius:13px; border:1px solid light-dark(#d4e3ef,#294057); background:light-dark(#fff,#132235); color:inherit; text-align:left; cursor:pointer; }
+.result { margin-top:16px; padding:14px 16px; border-radius:14px; font-weight:700; }
+.good { background:#dff8ed; color:#14643d; }
+.try { background:#fff0d9; color:#85500b; }
+.note { margin-top:18px; padding:14px 16px; border-radius:14px; background:#fff6d9; color:#72530a; font-size:13px; line-height:1.5; }
+.footer { text-align:center; color:light-dark(#718399,#8da0b4); font-size:12px; margin-top:18px; }
+@media(max-width:760px){ .hero{grid-template-columns:1fr; padding:24px;} .subjects,.styles{grid-template-columns:1fr 1fr;} .flow{grid-template-columns:1fr;} .step{padding:22px;} }
+@media(max-width:470px){ .subjects,.styles{grid-template-columns:1fr;} .top{align-items:flex-start;} }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="shell">
+    <header class="top">
+      <div class="brand"><div class="robot">🤖</div><div>Объясни мне</div></div>
+      <div class="badge">AI-помощник • прототип</div>
+    </header>
+
+    <section id="home" class="card hero">
+      <div>
+        <div class="kicker">Нейроджимми lab</div>
+        <h1>Сложная тема?<br><span class="grad">Объясним по-твоему.</span></h1>
+        <p class="lead">Помощник поможет разобраться в непонятной теме, объяснит её удобным способом и проверит, всё ли ты понял.</p>
+        <button class="cta" onclick="startApp()">🚀 Начать</button>
+      </div>
+    </section>
+
+    <section id="appStep" class="card step hidden">
+      <div class="progress"><div id="bar"></div></div>
+      <div id="stage"></div>
+    </section>
+
+    <div class="footer">Учебный прототип • AI помогает объяснить, но важные факты нужно проверять по надёжным источникам.</div>
+  </div>
+</div>
+<script>
+const state = { subject:null, topic:'', style:null, grade:null };
+const stage = document.getElementById('stage');
+const bar = document.getElementById('bar');
+function showStep(n){ bar.style.width = (n*20)+'%'; }
+function startApp(){ document.getElementById('home').classList.add('hidden'); document.getElementById('appStep').classList.remove('hidden'); renderGrade(); }
+function renderGrade(){ showStep(1); stage.innerHTML = `<div class="step-head"><div><div class="kicker">Шаг 1</div><h2>Для какого ты класса?</h2></div></div><p class="lead" style="font-size:15px">Предметы и объяснения будут подобраны под твою школьную программу.</p><div class="grade-row">
+<button class="option grade" onclick="chooseGrade('1–4 класс')">🌱<strong>1–4 класс</strong></button>
+<button class="option grade" onclick="chooseGrade('5–7 класс')">🚀<strong>5–7 класс</strong></button>
+<button class="option grade" onclick="chooseGrade('8–9 класс')">🧠<strong>8–9 класс</strong></button>
+<button class="option grade" onclick="chooseGrade('10–11 класс')">🎓<strong>10–11 класс</strong></button>
+</div>`; }
+function renderSubject(){ showStep(2); const subjects = state.grade === '1–4 класс' ? [
+['Окружающий мир','🌱','природа, человек, Земля'],['Математика','📐','числа и задачи'],['Русский язык','🔤','слова и правила'],['Литературное чтение','📚','сказки, рассказы, герои'],['Английский язык','🇬🇧','слова, фразы, грамматика'],['История','🏛️','прошлое и события'],['Информатика','💻','компьютеры и алгоритмы']
+] : state.grade === '5–7 класс' ? [
+['Математика','📐','числа, дроби, задачи'],['Русский язык','🔤','слова, правила, тексты'],['Английский язык','🇬🇧','слова, фразы, грамматика'],['Литература','📚','произведения и герои'],['История','🏛️','события и эпохи'],['География','🌍','Земля, страны, климат'],['Биология','🧬','живые организмы'],['Информатика','💻','алгоритмы и технологии'],['Обществознание','⚖️','общество и человек']
+] : [
+['Математика','📐','формулы и задачи'],['Русский язык','🔤','язык и правила'],['Английский язык','🇬🇧','слова, грамматика, тексты'],['Литература','📚','произведения и анализ'],['История','🏛️','события и эпохи'],['География','🌍','Земля и страны'],['Биология','🧬','организмы и системы'],['Физика','⚡','сила, энергия, движение'],['Химия','🧪','вещества и реакции'],['Информатика','💻','алгоритмы и программирование'],['Обществознание','⚖️','общество и человек']
+]; stage.innerHTML = `<div class="step-head"><div><div class="kicker">Шаг 2</div><h2>Что сегодня изучаем?</h2></div><div class="badge">${state.grade}</div></div><div class="subjects">${subjects.map(s=>`<button class="option" onclick="chooseSubject('${s[0]}')"><div class="icon">${s[1]}</div><strong>${s[0]}</strong><small>${s[2]}</small></button>`).join('')}</div><div class="row"><button class="secondary" onclick="renderGrade()">← Изменить класс</button></div>`; }
+function chooseGrade(g){ state.grade=g; renderSubject(); }
+function useExample(v){ document.getElementById('topic').value=v; saveTopic(); }
+function saveTopic(){ const input=document.getElementById('topic'); if(!input) return; const v=input.value.trim(); if(!v){ input.focus(); return; } state.topic=v; renderStyle(); }
+function renderOldGrade(){ showStep(2); stage.innerHTML = `<div class="step-head"><div><div class="kicker">Шаг 2</div><h2>Для какого ты класса?</h2></div></div><p class="lead" style="font-size:15px">Это нужно, чтобы объяснение было подходящей сложности.</p><div class="grade-row">
+<button class="option" onclick="chooseSubject('География')"><div class="icon">🌍</div><strong>География</strong><small>страны, климат, Земля</small></button>
+<button class="option" onclick="chooseSubject('Биология')"><div class="icon">🧬</div><strong>Биология</strong><small>организм, клетки, природа</small></button>
+<button class="option" onclick="chooseSubject('Математика')"><div class="icon">📐</div><strong>Математика</strong><small>числа, формулы, задачи</small></button>
+<button class="option" onclick="chooseSubject('История')"><div class="icon">📚</div><strong>История</strong><small>события и эпохи</small></button>
+<button class="option" onclick="chooseSubject('Физика')"><div class="icon">⚡</div><strong>Физика</strong><small>сила, энергия, движение</small></button>
+<button class="option" onclick="chooseSubject('Химия')"><div class="icon">🧪</div><strong>Химия</strong><small>вещества и реакции</small></button>
+</div>`; }
+function chooseSubject(s){ state.subject=s; renderTopic(); }
+function renderTopic(){ renderTopicInput(); }
+function renderTopicOld(){ showStep(2); stage.innerHTML = `<div class="step-head"><div><div class="kicker">Шаг 2</div><h2>Для какого ты класса?</h2></div></div><p class="lead" style="font-size:15px">Это нужно, чтобы объяснение было подходящей сложности.</p><div class="grade-row">
+<button class="option grade" onclick="chooseGrade('1–4 класс')">🌱<strong>1–4 класс</strong></button>
+<button class="option grade" onclick="chooseGrade('5–7 класс')">🚀<strong>5–7 класс</strong></button>
+<button class="option grade" onclick="chooseGrade('8–9 класс')">🧠<strong>8–9 класс</strong></button>
+<button class="option grade" onclick="chooseGrade('10–11 класс')">🎓<strong>10–11 класс</strong></button>
+</div><div class="row"><button class="secondary" onclick="renderSubject()">← Назад</button></div>`; }
+function renderTopicInput(){ const examples={ 'Математика':['Почему при делении дробей мы переворачиваем вторую дробь?','Как решать уравнения с иксом?','Почему минус на минус даёт плюс?'], 'Английский язык':['Когда использовать do и does?','Чем отличается say от tell?','Как запомнить неправильные глаголы?'], 'Русский язык':['Как отличить -тся от -ться?','Что такое причастие?','Как найти подлежащее и сказуемое?'], 'Биология':['Зачем человеку нужны эритроциты?','Как работает иммунитет?','Чем клетка растения отличается от клетки животного?'], 'Физика':['Почему тело падает вниз?','Что такое электрический ток?','Почему корабль не тонет?'], 'Химия':['Почему железо ржавеет?','Что такое химическая реакция?','Чем атом отличается от молекулы?'], 'История':['Почему началась Великая Отечественная война?','Как жили люди в Древнем Египте?','Зачем строили средневековые замки?'], 'География':['Почему меняется климат?','Как образуются горы?','Почему бывают часовые пояса?'], 'Информатика':['Что такое алгоритм?','Как работает интернет?','Чем программа отличается от сайта?'], 'Литература':['Как понять главную мысль произведения?','Зачем автор использует метафоры?','Как описать характер героя?'], 'Обществознание':['Что такое государство?','Зачем нужны налоги?','Чем права отличаются от обязанностей?'], 'Окружающий мир':['Почему меняется погода?','Как растения пьют воду?','Откуда берётся радуга?'], 'Литературное чтение':['Почему герой поступил именно так?','Как понять смысл сказки?','Чем рассказ отличается от сказки?']}; const chips=(examples[state.subject]||['Что здесь самое главное?','Объясни эту тему проще','Покажи понятный пример']).map(x=>`<button class="secondary" onclick="useExample('${x.replace(/'/g,"\\'")}')">${x}</button>`).join(''); showStep(3); stage.innerHTML = `<div class="step-head"><div><div class="kicker">Шаг 3</div><h2>Что именно непонятно?</h2></div><div class="badge">${state.subject} • ${state.grade}</div></div><p class="lead" style="font-size:15px">Напиши тему своими словами. Не нужно формулировать «правильный» запрос.</p><input id="topic" class="field" placeholder="Например: почему происходят землетрясения?" autofocus><p style="margin:14px 0 8px;font-weight:800">Или попробуй:</p><div class="row">${chips}</div><div class="row"><button class="cta" onclick="saveTopic()">Дальше →</button><button class="secondary" onclick="renderSubject()">← Назад</button></div>`; }
+function saveTopic(){ const v=document.getElementById('topic').value.trim(); if(!v){ document.getElementById('topic').focus(); return; } state.topic=v; renderStyle(); }
+function renderStyle(){ showStep(3); stage.innerHTML = `<div class="step-head"><div><div class="kicker">Шаг 3</div><h2>Как тебе объяснить?</h2></div><div class="badge">${state.subject} • ${state.grade}</div></div><div class="styles">
+<button class="option" onclick="chooseStyle('simple')"><div class="icon">🧒</div><strong>Очень просто</strong><small>как для друга</small></button>
+<button class="option" onclick="chooseStyle('example')"><div class="icon">🍕</div><strong>На примере</strong><small>через знакомую ситуацию</small></button>
+<button class="option" onclick="chooseStyle('visual')"><div class="icon">🎨</div><strong>С картинкой</strong><small>схема + объяснение</small></button>
+<button class="option" onclick="chooseStyle('game')"><div class="icon">🎮</div><strong>Как игру</strong><small>с мини-заданием</small></button>
+<button class="option" onclick="chooseStyle('teacher')"><div class="icon">👨‍🏫</div><strong>Как учитель</strong><small>подробнее и по шагам</small></button>
+<button class="option" onclick="chooseStyle('fun')"><div class="icon">😂</div><strong>С юмором</strong><small>но без потери смысла</small></button>
+</div><div class="row"><button class="secondary" onclick="renderTopic()">← Назад</button></div>`; }
+async function chooseStyle(s){ state.style=s; await renderExplanation(); }
+const fallback = {
+ 'землетряс': {title:'Почему происходят землетрясения?', text:'Представь Землю как огромную мозаику из гигантских плит. Они очень медленно двигаются. Иногда края плит застревают, напряжение накапливается, а потом участок резко смещается — энергия расходится в виде волн, и мы ощущаем землетрясение.', visual:'🌍 🧩  →  ↔️  →  ⚡  →  🌊'},
+ 'фотосинтез': {title:'Что такое фотосинтез?', text:'Растение использует свет как источник энергии. В листьях вода и углекислый газ превращаются в органические вещества, которыми растение может пользоваться для роста. При этом выделяется кислород.', visual:'☀️ + 💧 + CO₂ → 🌿 → 🍬 + O₂'},
+ 'дроб': {title:'Что такое дробь?', text:'Дробь показывает часть целого. Если пиццу разделить на 4 равные части и взять одну, это одна четверть: 1/4. Нижнее число показывает, на сколько частей разделили целое, верхнее — сколько частей взяли.', visual:'🍕  →  🍕🍕🍕🍕  →  1/4'},
+ 'клет': {title:'Что такое клетка?', text:'Клетка — маленькая структурная единица живого организма. У неё есть части, которые выполняют разные задачи: например, оболочка отделяет клетку от окружающей среды, а генетический материал хранит инструкции.', visual:'🔬  →  🟢 клетка  →  🧬 информация'},
+ 'планет': {title:'Почему планеты не падают на Солнце?', text:'Планета действительно притягивается к Солнцу гравитацией. Но она одновременно движется в сторону. Поэтому получается постоянное «падение мимо» Солнца — орбита.', visual:'☀️  ← гравитация →  🪐 ↗️'},
+ 'древн': {title:'Как изучать Древний Египет?', text:'Начни с трёх вещей: где находился Египет, почему Нил был важен и как была устроена власть. Так отдельные факты складываются в понятную картину, а не превращаются в список дат.', visual:'🏜️ + 🌊 Нил + 👑 власть'},
+};
+function getExplanation(){ const t=state.topic.toLowerCase(); for(const k in fallback) if(t.includes(k)) return fallback[k]; return {title:state.topic, text:`Разберём тему «${state.topic}» небольшими шагами. Сначала определим главное понятие, затем посмотрим на простой пример, а в конце проверим, что действительно осталось в памяти. В реальной версии этот текст будет генерировать подключённая AI-модель с учётом выбранного тобой способа объяснения.`, visual:'💡 → 🧩 → 🔎 → 🎯'}; }
+async function renderExplanation(){ showStep(4); stage.innerHTML='<div class="step-head"><div><div class="kicker">Шаг 4 • AI объясняет</div><h2>Секунду… разбираюсь 🤖</h2></div><div class="badge">'+state.subject+' • '+state.grade+'</div></div><div class="answer"><p>Подбираю объяснение именно под твой класс, предмет и способ, который ты выбрал.</p></div>'; try { const response=await fetch('/api/explain',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({grade:state.grade,subject:state.subject,topic:state.topic,style:state.style})}); if(!response.ok) throw new Error('AI request failed'); const data=await response.json(); state.ai=data; const styleNames={simple:'очень простым языком',example:'через понятный пример',visual:'с визуальной схемой',game:'в формате маленькой игры',teacher:'подробно и по шагам',fun:'с лёгким юмором'}; stage.innerHTML=`<div class="step-head"><div><div class="kicker">Шаг 4 • AI объясняет</div><h2>${escapeHtml(data.title||state.topic)}</h2></div><div class="badge">${styleNames[state.style]} • ${state.grade}</div></div><div class="answer"><h3>🤖 Объяснение</h3><p>${escapeHtml(data.explanation)}</p><div class="visual"><span class="earth">💡</span><strong>Запомни в одной фразе</strong><br>${escapeHtml(data.summary||'Сначала пойми главную связь, потом проверяй детали.') }<div style="clear:both"></div></div></div><div class="row"><button class="cta" onclick="renderQuiz()">🎯 Проверить себя</button><button class="secondary" onclick="renderStyle()">← Другой способ</button><button class="secondary" onclick="renderTopicInput()">✏️ Изменить тему</button><button class="secondary" onclick="renderStillNot()">🤔 Я всё равно не понял</button></div>`; } catch(error) { const e=getExplanation(); stage.innerHTML=`<div class="step-head"><div><div class="kicker">Шаг 4 • Локальный режим</div><h2>${escapeHtml(e.title)}</h2></div><div class="badge">AI пока недоступен</div></div><div class="answer"><h3>🤖 Пример объяснения</h3><p>${escapeHtml(e.text)}</p><div class="visual"><span class="earth">${e.visual.split(' ')[0]}</span><strong>Запомни в одной фразе</strong><br>${escapeHtml(e.text.split('. ')[0])+'.'}<div style="clear:both"></div></div></div><div class="note">AI-сервер пока не подключён или временно недоступен. После публикации проекта и добавления ключа OpenAI этот же экран будет получать настоящее объяснение.</div><div class="row"><button class="cta" onclick="renderQuiz()">🎯 Проверить себя</button><button class="secondary" onclick="renderStyle()">← Другой способ</button></div>`; } }
+function renderStillNot(){ showStep(4); stage.innerHTML=`<div class="step-head"><div><div class="kicker">Шаг 4 • AI подстраивается</div><h2>Хорошо. Давай попробуем иначе.</h2></div><div class="badge">${state.subject} • ${state.grade}</div></div><p class="lead" style="font-size:15px">Что именно осталось непонятным?</p><div class="styles"><button class="option" onclick="adaptiveExplain('simple')"><div class="icon">🧒</div><strong>Слишком сложно</strong><small>Объясни ещё проще</small></button><button class="option" onclick="adaptiveExplain('example')"><div class="icon">🍕</div><strong>Нужен пример</strong><small>Покажи на знакомой ситуации</small></button><button class="option" onclick="adaptiveExplain('visual')"><div class="icon">🎨</div><strong>Не хватает картинки</strong><small>Сделай понятную схему</small></button><button class="option" onclick="adaptiveExplain('game')"><div class="icon">🎮</div><strong>Давай попробуем</strong><small>Дай мне маленькое задание</small></button></div><div class="row"><button class="secondary" onclick="renderExplanation()">← Вернуться к объяснению</button></div>`; }
+function adaptiveExplain(s){ state.style=s; renderExplanation(); }
+function renderQuiz(){ showStep(5); const e=state.ai||getExplanation(); let q=e.quizQuestion||'Что главное помогает понять эту тему?'; let opts=e.quizOptions||['Связь между основными понятиями','Нужно просто выучить все слова','Нужно запомнить только одну цифру']; stage.innerHTML=`<div class="step-head"><div><div class="kicker">Шаг 5 • Проверка</div><h2>А теперь — без подсказок 👀</h2></div></div><div class="quiz"><div class="quiz-q">${escapeHtml(q)}</div><div class="quiz-options">${opts.map((o,i)=>`<button onclick="answerQuiz(${i})">${escapeHtml(o)}</button>`).join('')}</div><div id="result"></div></div><div class="note">⚠️ AI может ошибаться. Если ответ важен для контрольной, проекта или экзамена — сверяй его с учебником и надёжным источником.</div><div class="row"><button class="secondary" onclick="renderExplanation()">← Вернуться к объяснению</button><button class="secondary" onclick="restart()">Начать заново</button></div>`; }
+function answerQuiz(i){ const r=document.getElementById('result'); const good=state.ai ? i===Number(state.ai.quizCorrectIndex) : i===0; r.className='result '+(good?'good':'try'); r.innerHTML=good?'🎉 Верно! Похоже, ты понял главную идею.<br><button class="secondary" style="margin-top:10px" onclick="finishLesson()">Хочу попробовать другую тему →</button>':'🤔 Не страшно. Попробуем объяснить иначе?<br><button class="secondary" style="margin-top:10px" onclick="renderStyle()">Выбрать другой способ</button>'; }
+function finishLesson(){ stage.innerHTML=`<div class="step-head"><div><div class="kicker">Готово 🎉</div><h2>Ты не просто получил ответ — ты проверил, понял ли его.</h2></div></div><div class="answer"><h3>🧠 Что здесь произошло?</h3><p>Ты задал настоящую учебную задачу, выбрал подходящий способ объяснения и проверил результат. Именно так AI становится инструментом для учёбы, а не машиной для списывания.</p><div class="visual"><strong>Твой алгоритм:</strong><br>❓ Не понимаю → 🤖 Задаю задачу AI → 🎨 Выбираю объяснение → 🎯 Проверяю себя → 🔎 Проверяю важные факты</div></div><div class="row"><button class="cta" onclick="renderTopicInput()">🚀 Разобрать ещё тему</button><button class="secondary" onclick="restart()">На главную</button></div>`; }
+function restart(){ state.subject=null; state.topic=''; state.style=null; state.grade=null; document.getElementById('appStep').classList.add('hidden'); document.getElementById('home').classList.remove('hidden'); }
+function escapeHtml(s){return s.replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+</script>
+</body>
+</html>
