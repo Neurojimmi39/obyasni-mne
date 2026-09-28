@@ -1,11 +1,13 @@
-const fs = require('fs');
-const path = require('path');
-const https = require('https');
-const { randomUUID } = require('crypto');
+import fs from 'fs';
+import path from 'path';
+import https from 'https';
+import { randomUUID } from 'crypto';
+
+const certDir = path.join(process.cwd(), 'certs');
 
 const ca = [
-  fs.readFileSync(path.join(__dirname, '../certs/Russian_Trusted_Root_CA.cer')),
-  fs.readFileSync(path.join(__dirname, '../certs/Russian_Trusted_Sub_CA.cer'))
+  fs.readFileSync(path.join(certDir, 'Russian_Trusted_Root_CA.cer')),
+  fs.readFileSync(path.join(certDir, 'Russian_Trusted_Sub_CA.cer'))
 ];
 
 const httpsAgent = new https.Agent({ ca });
