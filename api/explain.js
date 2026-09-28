@@ -1,3 +1,13 @@
+import fs from 'fs';
+import https from 'https';
+
+const ca = [
+  fs.readFileSync('./certs/Russian_Trusted_Root_CA.cer'),
+  fs.readFileSync('./certs/Russian_Trusted_Sub_CA.cer')
+];
+
+const httpsAgent = new https.Agent({ ca });
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -51,7 +61,6 @@ export default async function handler(req, res) {
   "quizCorrectIndex": 0
 }`;
 
-    // Получаем временный access token GigaChat
     const tokenResponse = await fetch(
       'https://ngw.devices.sberbank.ru:9443/api/v2/oauth',
       {
@@ -62,7 +71,8 @@ export default async function handler(req, res) {
           'RqUID': crypto.randomUUID(),
           'Authorization': `Basic ${authKey}`
         },
-        body: 'scope=GIGACHAT_API_PERS'
+        body: 'scope=GIGACHAT_API_PERS',
+        agent: httpsAgent
       }
     );
 
@@ -78,13 +88,6 @@ export default async function handler(req, res) {
     const tokenData = await tokenResponse.json();
     const accessToken = tokenData.access_token;
 
-    if (!accessToken) {
-      return res.status(502).json({
-        error: 'GigaChat access token is missing'
-      });
-    }
-
-    // Отправляем запрос модели
     const response = await fetch(
       'https://api.giga.chat/v1/chat/completions',
       {
@@ -103,7 +106,8 @@ export default async function handler(req, res) {
             }
           ],
           temperature: 0.3
-        })
+        }),
+        agent: httpsAgent
       }
     );
 
@@ -117,7 +121,6 @@ export default async function handler(req, res) {
     }
 
     const data = await response.json();
-
     const text = data?.choices?.[0]?.message?.content;
 
     if (!text) {
@@ -126,16 +129,13 @@ export default async function handler(req, res) {
       });
     }
 
-    // Иногда модель может вернуть JSON внутри ```json ... ```
     const cleanText = text
       .replace(/^```json\s*/i, '')
       .replace(/^```\s*/i, '')
       .replace(/\s*```$/i, '')
       .trim();
 
-    const result = JSON.parse(cleanText);
-
-    return res.status(200).json(result);
+    return res.status(200).json(JSON.parse(cleanText));
 
   } catch (error) {
     console.error('GigaChat error:', error);
