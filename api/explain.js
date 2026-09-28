@@ -1,152 +1,148 @@
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
     const { grade, subject, topic, style } = req.body || {};
 
     if (!grade || !subject || !topic || !style) {
-      return res.status(400).json({
-        error: "Не хватает данных для объяснения"
-      });
+      return res.status(400).json({ error: 'Missing fields' });
     }
 
     const authKey = process.env.GIGACHAT_AUTH_KEY;
 
     if (!authKey) {
       return res.status(500).json({
-        error: "GigaChat key is not configured"
+        error: 'GIGACHAT_AUTH_KEY is not configured'
       });
     }
 
-    // Получаем временный access token
+    const styleMap = {
+      simple: 'очень простым языком, как для друга',
+      example: 'через знакомый жизненный пример',
+      visual: 'через простую текстовую схему и объяснение',
+      game: 'как маленькую игру с коротким заданием',
+      teacher: 'как хороший учитель: подробно и по шагам',
+      fun: 'с лёгким уместным юмором, не теряя смысла'
+    };
+
+    const prompt = `Ты — доброжелательный AI-помощник для школьника.
+
+Класс: ${grade}
+Предмет: ${subject}
+Вопрос ребёнка: ${topic}
+Способ объяснения: ${styleMap[style] || styleMap.simple}
+
+Объясни именно эту тему на уровне указанного класса.
+Не перегружай терминами.
+Если используешь термин, сразу объясни его простыми словами.
+Не придумывай факты.
+
+В конце дай одну короткую фразу для запоминания и один вопрос с тремя вариантами ответа для проверки понимания.
+
+Верни только JSON:
+{
+  "title": "короткий заголовок",
+  "explanation": "понятное объяснение",
+  "summary": "одна короткая фраза для запоминания",
+  "quizQuestion": "вопрос",
+  "quizOptions": ["вариант 1", "вариант 2", "вариант 3"],
+  "quizCorrectIndex": 0
+}`;
+
+    // Получаем временный access token GigaChat
     const tokenResponse = await fetch(
-      "https://ngw.devices.sberbank.ru:9443/api/v2/oauth",
+      'https://ngw.devices.sberbank.ru:9443/api/v2/oauth',
       {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "Accept": "application/json",
-          "RqUID": crypto.randomUUID(),
-          "Authorization": `Basic ${authKey}`
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+          'RqUID': crypto.randomUUID(),
+          'Authorization': `Basic ${authKey}`
         },
-        body: "scope=GIGACHAT_API_PERS"
+        body: 'scope=GIGACHAT_API_PERS'
       }
     );
 
     if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
+      const detail = await tokenResponse.text();
 
-      return res.status(500).json({
-        error: "Не удалось получить токен GigaChat",
-        details: errorText
+      return res.status(502).json({
+        error: 'GigaChat authorization failed',
+        detail
       });
     }
 
     const tokenData = await tokenResponse.json();
     const accessToken = tokenData.access_token;
 
-    const styleNames = {
-      simple: "очень простым языком, как для друга",
-      example: "через понятный бытовой пример",
-      visual: "через простую словесную схему или образ",
-      game: "как небольшую игру или мини-задание",
-      teacher: "подробно и последовательно, как хороший учитель",
-      fun: "с лёгким юмором, но без потери смысла"
-    };
+    if (!accessToken) {
+      return res.status(502).json({
+        error: 'GigaChat access token is missing'
+      });
+    }
 
-    const prompt = `
-Ты — доброжелательный помощник школьника.
-
-Класс: ${grade}
-Предмет: ${subject}
-Тема или вопрос ребёнка: ${topic}
-
-Ребёнок попросил объяснить тему ${styleNames[style] || "понятно и простыми словами"}.
-
-Твоя задача:
-1. Объяснить тему на уровне указанного класса.
-2. Не перегружать ответ сложными терминами.
-3. Если используешь термин — сразу объяснить его.
-4. Дать один понятный пример.
-5. В конце сформулировать главное в одной короткой фразе.
-6. Составить один небольшой вопрос для проверки понимания.
-7. Дать 3 варианта ответа.
-8. Указать номер правильного варианта: 0, 1 или 2.
-
-Верни ТОЛЬКО корректный JSON такого вида:
-
-{
-  "title": "короткий заголовок",
-  "explanation": "понятное объяснение",
-  "summary": "главная мысль одной фразой",
-  "quizQuestion": "вопрос",
-  "quizOptions": [
-    "вариант 1",
-    "вариант 2",
-    "вариант 3"
-  ],
-  "quizCorrectIndex": 0
-}
-`;
-
-    const gigaResponse = await fetch(
-      "https://api.giga.chat/v2/chat/completions",
+    // Отправляем запрос модели
+    const response = await fetch(
+      'https://api.giga.chat/v1/chat/completions',
       {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          "Authorization": `Bearer ${accessToken}`
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
         },
         body: JSON.stringify({
-          model: "GigaChat-3-Ultra",
+          model: 'GigaChat-3-Ultra',
           messages: [
             {
-              role: "user",
+              role: 'user',
               content: prompt
             }
           ],
-          temperature: 0.4
+          temperature: 0.3
         })
       }
     );
 
-    if (!gigaResponse.ok) {
-      const errorText = await gigaResponse.text();
+    if (!response.ok) {
+      const detail = await response.text();
 
-      return res.status(500).json({
-        error: "Ошибка GigaChat",
-        details: errorText
+      return res.status(502).json({
+        error: 'GigaChat request failed',
+        detail
       });
     }
 
-    const gigaData = await gigaResponse.json();
+    const data = await response.json();
 
-    const content =
-      gigaData?.choices?.[0]?.message?.content;
+    const text = data?.choices?.[0]?.message?.content;
 
-    if (!content) {
-      throw new Error("GigaChat вернул пустой ответ");
+    if (!text) {
+      return res.status(502).json({
+        error: 'Empty GigaChat response'
+      });
     }
 
-    const cleaned = content
-      .replace(/^```json\s*/i, "")
-      .replace(/^```\s*/i, "")
-      .replace(/\s*```$/i, "")
+    // Иногда модель может вернуть JSON внутри ```json ... ```
+    const cleanText = text
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/\s*```$/i, '')
       .trim();
 
-    const result = JSON.parse(cleaned);
+    const result = JSON.parse(cleanText);
 
     return res.status(200).json(result);
 
   } catch (error) {
-    console.error(error);
+    console.error('GigaChat error:', error);
 
     return res.status(500).json({
-      error: "Не удалось получить объяснение",
-      details: error.message
+      error: 'Server error',
+      detail: error?.message || 'Unknown error'
     });
   }
 }
