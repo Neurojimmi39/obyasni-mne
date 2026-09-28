@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/explain.js": {
+      "includeFiles": "certs/*.cer"
+    }
+  }
+}
