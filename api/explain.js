@@ -92,7 +92,7 @@ export default async function handler(req, res) {
 `;
 
     const gigaResponse = await fetch(
-      "https://api.giga.chat/v1/chat/completions",
+      "https://api.giga.chat/v2/chat/completions",
       {
         method: "POST",
         headers: {
